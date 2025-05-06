@@ -444,7 +444,6 @@ class Biblioteca {
     }
 
     public void returneazaCarte(Cititor cititor, Carte carte) {
-        // Găsește împrumutul activ pentru această carte și cititor
         Imprumut imprumut = imprumuturiActive.stream()
             .filter(i -> i.getCititor().equals(cititor) 
                     && i.getCarteImprumutata().equals(carte) 
@@ -452,7 +451,6 @@ class Biblioteca {
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("Împrumutul nu există!"));
 
-        // Actualizează starea
         cititor.getCartiImprumutate().remove(carte);
         carte.setEsteDisponibil(true);
         imprumut.finalizeazaImprumut();
