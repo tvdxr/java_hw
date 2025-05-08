@@ -111,6 +111,7 @@ class Carte {
             return self();
         }
 
+        @SuppressWarnings("unchecked")
         protected T self() {
             return (T) this;
         }
@@ -538,7 +539,6 @@ class Biblioteca {
 
         Imprumut imprumut = new Imprumut(cititor, carte, LocalDate.now(), dataReturnare);
         imprumuturiActive.add(imprumut);
-        istoricImprumuturi.add(imprumut);
     }
 
     public void returneazaCarte(Cititor cititor, Carte carte) {
@@ -553,6 +553,7 @@ class Biblioteca {
         carte.setEsteDisponibil(true);
         imprumut.finalizeazaImprumut();
         imprumuturiActive.remove(imprumut);
+        istoricImprumuturi.add(imprumut);
     }
 
     private void sorteazaListaCarti() {
@@ -590,10 +591,6 @@ class Biblioteca {
     }
 }
 
-
-/* DE ADAUGAT INCA CATEVA ACTIUNI/INTEROGARI IN CLASA BIBLIOTECA 
- clasa noua pentru card de biblioteca la 3 imprumuturi se deblocheaza editie speciala
-*/
 
 class InitializareDate {
     public static Biblioteca initializeazaBiblioteca() {
@@ -690,7 +687,8 @@ class Meniu {
             System.out.println("5. Afiseaza cititorii inregistrati");
             System.out.println("6. Afiseaza istoric imprumuturi");
             System.out.println("7. Cauta carte (dupa nume, autor, an publicatie)");
-            System.out.println("8. Iesire");
+            System.out.println("8. Statistici biblioteca");
+            System.out.println("9. Iesire");
             
             optiune = citesteInt(scanner, "Alege o optiune: ");
             scanner.nextLine();  
@@ -877,8 +875,14 @@ class Meniu {
                             }
                         }
                     
+                    case 8:
+                        System.out.println("Statistici biblioteca:");
+                        System.out.println("- Numărul total de cărți: " + biblioteca.getListaCarti().size());
+                        System.out.println("- Numărul total de cititori înregistrați: " + biblioteca.getCititoriInregistrati().size());
+                        System.out.println("- Numărul total de împrumuturi active: " + biblioteca.getImprumuturiActive().size());
+                        break;
             }
-        } while (optiune != 8);
+        } while (optiune != 9);
 
         scanner.close();
     }
