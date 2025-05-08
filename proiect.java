@@ -549,7 +549,7 @@ class Biblioteca {
         Objects.requireNonNull(carte);
 
         if (!carte.esteDisponibil()) {
-            throw new IllegalStateException("Cartea nu este  disponibila!");
+            throw new IllegalStateException("Cartea nu este disponibila!");
         }
 
         cititor.adaugaCarteImprumutata(carte);
@@ -664,9 +664,15 @@ class InitializareDate {
         biblioteca.adaugaCarte(editieSpeciala1);
         
         Cititor cititor1 = new Cititor("Ion", "Popescu", 1);
+        Cititor cititor2 = new Cititor("Maria", "Ionescu", 2);
 
         biblioteca.inregistreazaCititor(cititor1);
+        biblioteca.inregistreazaCititor(cititor2);
         biblioteca.imprumutaCarte(cititor1, carte2, LocalDate.of(2025, 06, 15));
+        biblioteca.returneazaCarte(cititor1, carte2);
+        biblioteca.imprumutaCarte(cititor1, roman1, LocalDate.of(2025, 06, 20));
+        biblioteca.imprumutaCarte(cititor2, carte2, LocalDate.of(2025, 07, 01));
+
         return biblioteca;
     }
 }
@@ -706,7 +712,8 @@ class Meniu {
             System.out.println("6. Afiseaza istoric imprumuturi");
             System.out.println("7. Cauta carte (dupa nume, autor, an publicatie)");
             System.out.println("8. Statistici biblioteca");
-            System.out.println("9. Iesire");
+            System.out.println("9. Numar carti imprumutate cititor si eligibilitate editie speciala");
+            System.out.println("10. Iesire");
             
             optiune = citesteInt(scanner, "Alege o optiune: ");
             scanner.nextLine();  
@@ -903,12 +910,39 @@ class Meniu {
                     
                 case 8:
                     System.out.println("Statistici biblioteca:");
-                    System.out.println("- Numărul total de cărți: " + biblioteca.getListaCarti().size());
-                    System.out.println("- Numărul total de cititori înregistrați: " + biblioteca.getCititoriInregistrati().size());
-                    System.out.println("- Numărul total de împrumuturi active: " + biblioteca.getImprumuturiActive().size());
+                    System.out.println("- Numarul total de carti: " + biblioteca.getListaCarti().size());
+                    System.out.println("- Numarul total de cititori inregistrati: " + biblioteca.getCititoriInregistrati().size());
+                    System.out.println("- Numarul total de imprumuturi active: " + biblioteca.getImprumuturiActive().size());
+                    break;
+
+                case 9:
+                    int idCititorStatistici = citesteInt(scanner, "ID-ul cititorului: ");
+                    scanner.nextLine();
+                    
+                    Cititor cititorStatistici = biblioteca.getCititoriInregistrati().stream()
+                            .filter(c -> c.getIdCititor() == idCititorStatistici)
+                            .findFirst()
+                            .orElse(null);
+                    
+                    try {
+                        if (cititorStatistici == null) {
+                            throw new IllegalStateException("Cititorul nu este inregistrat!");
+                        }
+                    } catch (IllegalStateException e) {
+                        System.out.println(e.getMessage());
+                        break;
+                    }
+                    
+                    System.out.println("Numarul de carti imprumutate de " + cititorStatistici.getNume() + " " + cititorStatistici.getPrenume() + ": " + cititorStatistici.getCartiImprumutate().size());
+                    
+                    if (biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorStatistici)) {
+                        System.out.println("Cititorul este eligibil pentru a imprumuta o editie speciala.");
+                    } else {
+                        System.out.println("Cititorul nu este eligibil pentru a imprumuta o editie speciala.");
+                    }
                     break;
             }
-        } while (optiune != 9);
+        } while (optiune != 10);
 
         scanner.close();
     }
