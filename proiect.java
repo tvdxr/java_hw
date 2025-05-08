@@ -7,13 +7,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.InputMismatchException;
 
 class Carte {
-    private String nume;
-    private Autor autor;
-    private Sectiune sectiune;
-    private int anPublicatie;
-    private boolean esteDisponibil;
+    protected String nume;
+    protected Autor autor;
+    protected Sectiune sectiune;
+    protected int anPublicatie;
+    protected boolean esteDisponibil;
 
     public Carte(String nume, Autor autor, Sectiune sectiune, int anPublicatie) {
         setNume(nume);
@@ -70,7 +71,7 @@ class Carte {
     }
 
     // builder
-    protected Carte(Builder builder) {
+    protected Carte(Builder<?> builder) {
         this.nume = builder.nume;
         this.autor = builder.autor;
         this.sectiune = builder.sectiune;
@@ -78,42 +79,40 @@ class Carte {
         this.esteDisponibil = builder.esteDisponibil;
     }
 
-    public static class Builder {
-        private String nume;
-        private Autor autor;
-        private Sectiune sectiune;
-        private int anPublicatie;
-        private boolean esteDisponibil = true;
+    public static class Builder<T extends Builder<T>> {
+        protected String nume;
+        protected Autor autor;
+        protected Sectiune sectiune;
+        protected int anPublicatie;
+        protected boolean esteDisponibil = true;
 
-        public Builder setNume(String nume) {
-            if (nume == null || nume.isEmpty()) {
-                throw new IllegalArgumentException("Numele nu poate fi null sau gol.");
-            }
+        public T setNume(String nume) {
             this.nume = nume;
-            return this;
+            return self();
         }
 
-        public Builder setAutor(Autor autor) {
+        public T setAutor(Autor autor) {
             this.autor = autor;
-            return this;
+            return self();
         }
 
-        public Builder setSectiune(Sectiune sectiune) {
+        public T setSectiune(Sectiune sectiune) {
             this.sectiune = sectiune;
-            return this;
+            return self();
         }
 
-        public Builder setAnPublicatie(int anPublicatie) {
-            if (anPublicatie <= 0) {
-                throw new IllegalArgumentException("Anul publicatiei trebuie sa fie un numar pozitiv.");
-            }
+        public T setAnPublicatie(int anPublicatie) {
             this.anPublicatie = anPublicatie;
-            return this;
+            return self();
         }
 
-        public Builder setEsteDisponibil(boolean esteDisponibil) {
+        public T setEsteDisponibil(boolean esteDisponibil) {
             this.esteDisponibil = esteDisponibil;
-            return this;
+            return self();
+        }
+
+        protected T self() {
+            return (T) this;
         }
 
         public Carte build() {
@@ -130,9 +129,9 @@ class Autor {
     private String nationalitate;
     private List<Carte> cartiPublicate = new ArrayList<>();
 
-    public Autor(String nume, String prenume, String nationalitate, List<Carte> cartiExistente) {
-        setNume(nume);
+    public Autor(String prenume, String nume, String nationalitate, List<Carte> cartiExistente) {
         setPrenume(prenume);
+        setNume(nume);
         setNationalitate(nationalitate);
 
         if (cartiExistente != null) {
@@ -143,8 +142,8 @@ class Autor {
         }
     }
 
-    public Autor(String nume, String prenume, String nationalitate) {
-        this(nume, prenume, nationalitate, null);
+    public Autor(String prenume, String nume, String nationalitate) {
+        this(prenume, nume, nationalitate, null);
     }
 
     public void setNume(String nume) {
@@ -417,16 +416,16 @@ class Roman extends Carte {
         this.numarPagini = builder.numarPagini;
     }
 
-    private static class RomanBuilder extends Carte.Builder {
+    public static class RomanBuilder extends Carte.Builder<RomanBuilder> {
         private String genLiterar;
         private int numarPagini;
 
-        public Builder setGenLiterar(String genLiterar) {
+        public RomanBuilder setGenLiterar(String genLiterar) {
             this.genLiterar = genLiterar;
             return this;
         }
 
-        public Builder setNumarPagini(int numarPagini) {
+        public RomanBuilder setNumarPagini(int numarPagini) {
             this.numarPagini = numarPagini;
             return this;
         }
@@ -439,18 +438,18 @@ class Roman extends Carte {
 }
 
 
-class editieSpeciala extends Carte {
+class EditieSpeciala extends Carte {
     private String tipEditie;
     private int numarExemplare;
 
-    public editieSpeciala(String nume, Autor autor, Sectiune sectiune, int anPublicatie, String tipEditie, int numarExemplare) {
+    public EditieSpeciala(String nume, Autor autor, Sectiune sectiune, int anPublicatie, String tipEditie, int numarExemplare) {
         super(nume, autor, sectiune, anPublicatie);
         setTipEditie(tipEditie);
         setNumarExemplare(numarExemplare);
     }
 
     public void setTipEditie(String tipEditie) {
-        if (tipEditie == null || !List.of("Hardcover", "Paperback").contains(tipEditie)) {
+        if (tipEditie == null || !List.of("Hardcover", "Paperback", "Aniversara").contains(tipEditie)) {
             throw new IllegalArgumentException("Tip editie invalid.");
         }
         this.tipEditie = tipEditie;
@@ -472,29 +471,29 @@ class editieSpeciala extends Carte {
     }
 
     // builder
-    private editieSpeciala(EditieSpecialaBuilder builder) {
+    private EditieSpeciala(EditieSpecialaBuilder builder) {
         super(builder);
         this.tipEditie = builder.tipEditie;
         this.numarExemplare = builder.numarExemplare;
     }
 
-    private static class EditieSpecialaBuilder extends Carte.Builder {
+    public static class EditieSpecialaBuilder extends Carte.Builder<EditieSpecialaBuilder> {
         private String tipEditie;
         private int numarExemplare;
 
-        public Builder setTipEditie(String tipEditie) {
+        public EditieSpecialaBuilder setTipEditie(String tipEditie) {
             this.tipEditie = tipEditie;
             return this;
         }
 
-        public Builder setNumarExemplare(int numarExemplare) {
+        public EditieSpecialaBuilder setNumarExemplare(int numarExemplare) {
             this.numarExemplare = numarExemplare;
             return this;
         }
 
         @Override
-        public editieSpeciala build() {
-            return new editieSpeciala(this);
+        public EditieSpeciala build() {
+            return new EditieSpeciala(this);
         }
     }
 }
@@ -510,10 +509,6 @@ class Biblioteca {
     public void adaugaAutor(Autor autor) {
         Objects.requireNonNull(autor);
         cartiAutor.putIfAbsent(autor, new ArrayList<>());
-    }
-
-    public void adaugaSectiune(Sectiune sectiune) {
-        Objects.requireNonNull(sectiune);
     }
 
     public void adaugaCarte(Carte carte) {
@@ -586,8 +581,8 @@ class Biblioteca {
             .toList();
     }
 
-    private boolean verificaEligibilEditieSpeciala(Biblioteca biblioteca, Cititor cititor) {
-        return biblioteca.getIstoricImprumuturiCititor(cititor).size() >= 3;
+    public boolean verificaEligibilEditieSpeciala(Biblioteca biblioteca, Cititor cititor) {
+        return biblioteca.getIstoricImprumuturiCititor(cititor).size() >= 1;
     }
 
     public List<Imprumut> getImprumuturiActive() {
@@ -606,20 +601,57 @@ class InitializareDate {
         
         Autor autor1 = new Autor("Mihai", "Eminescu", "Romana");
         Autor autor2 = new Autor("Ion", "Creanga", "Romana");
+        Autor autor3 = new Autor("George", "Cozma", "Romana");
+        Autor autor4 = new Autor("Ion", "Barbu", "Romana");
         
         Sectiune sectiune1 = new Sectiune("Poezie", "Raft A1");
         Sectiune sectiune2 = new Sectiune("Proza", "Raft B2");
-        
-        Carte carte1 = new Carte("Luceafarul", autor1, sectiune1, 1883);
-        Carte carte2 = new Carte("Povestea lui Harap-Alb", autor2, sectiune2, 1877);
-        Roman roman1 = new Roman("O scrisoare pierduta", autor2, sectiune2, 1884, "Comedie", 200);
+        Sectiune sectiune3 = new Sectiune("Eseuri", "Raft A2");
+        Sectiune sectiune4 = new Sectiune("Literatura Universala", "Raft C1");
+
+        Carte carte1 = new Carte.Builder<>()
+            .setNume("Luceafarul")
+            .setAutor(autor1)
+            .setSectiune(sectiune1)
+            .setAnPublicatie(1883)
+            .build();
+
+        Carte carte2 = new Carte.Builder<>()
+            .setNume("Povestea lui Harap-Alb")
+            .setAutor(autor2)
+            .setSectiune(sectiune2)
+            .setAnPublicatie(1877)
+            .build();
+
+        Roman roman1 = new Roman.RomanBuilder()
+            .setNume("O scrisoare pierduta")
+            .setAutor(autor3)
+            .setSectiune(sectiune3)
+            .setAnPublicatie(1884)
+            .setGenLiterar("Comedie")
+            .setNumarPagini(200)
+            .build();
+
+        EditieSpeciala editieSpeciala1 = new EditieSpeciala.EditieSpecialaBuilder()
+            .setNume("Mara")
+            .setAutor(autor4)
+            .setSectiune(sectiune4)
+            .setAnPublicatie(2023)
+            .setTipEditie("Hardcover")
+            .setNumarExemplare(100)
+            .build();
         
         biblioteca.adaugaAutor(autor1);
         biblioteca.adaugaAutor(autor2);
         biblioteca.adaugaCarte(carte1);
         biblioteca.adaugaCarte(carte2);
         biblioteca.adaugaCarte(roman1);
+        biblioteca.adaugaCarte(editieSpeciala1);
         
+        Cititor cititor1 = new Cititor("Ion", "Popescu", 1);
+
+        biblioteca.inregistreazaCititor(cititor1);
+        biblioteca.imprumutaCarte(cititor1, carte2, LocalDate.of(2025, 06, 15));
         return biblioteca;
     }
 }
@@ -631,7 +663,20 @@ class Meniu {
     public Meniu(Biblioteca biblioteca) {
         this.biblioteca = biblioteca;
     }
-    
+
+    private int citesteInt(Scanner scanner, String mesaj) {
+        while (true) {
+            try {
+                System.out.print(mesaj);
+                return scanner.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Va rugam introduceti un numar valid!");
+                scanner.nextLine(); 
+            }
+        }
+    }
+
+
     public void afiseazaMeniu() {
         Scanner scanner = new Scanner(System.in);
         int optiune;
@@ -644,10 +689,10 @@ class Meniu {
             System.out.println("4. Afiseaza carti disponibile");
             System.out.println("5. Afiseaza cititorii inregistrati");
             System.out.println("6. Afiseaza istoric imprumuturi");
-            System.out.println("7. Iesire");
-            System.out.print("Alege optiunea: ");
+            System.out.println("7. Cauta carte (dupa nume, autor, an publicatie)");
+            System.out.println("8. Iesire");
             
-            optiune = scanner.nextInt();
+            optiune = citesteInt(scanner, "Alege o optiune: ");
             scanner.nextLine();  
             
             switch (optiune) {
@@ -656,8 +701,7 @@ class Meniu {
                     String numeCititor = scanner.nextLine();
                     System.out.print("Introdu prenumele cititorului: ");
                     String prenumeCititor = scanner.nextLine();
-                    System.out.print("Introdu ID-ul cititorului: ");
-                    int idCititor = scanner.nextInt();
+                    int idCititor = citesteInt(scanner, "ID-ul cititorului: ");
                     
                     Cititor cititor = new Cititor(numeCititor, prenumeCititor, idCititor);
                     biblioteca.inregistreazaCititor(cititor);
@@ -665,8 +709,7 @@ class Meniu {
                     break;
 
                 case 2:
-                    System.out.print("Introdu ID-ul cititorului: ");
-                    int idCititorImprumut = scanner.nextInt();
+                    int idCititorImprumut = citesteInt(scanner, "ID-ul cititorului: ");
                     scanner.nextLine(); 
                     
                     Cititor cititorImprumut = biblioteca.getCititoriInregistrati().stream()
@@ -674,8 +717,12 @@ class Meniu {
                             .findFirst()
                             .orElse(null);
                     
-                    if (cititorImprumut == null) {
-                        System.out.println("Cititorul nu este inregistrat!");
+                    try {
+                        if (cititorImprumut == null) {
+                            throw new IllegalStateException("Cititorul nu este inregistrat!");
+                        }
+                    } catch (IllegalStateException e) {
+                        System.out.println(e.getMessage());
                         break;
                     }
                     
@@ -687,22 +734,35 @@ class Meniu {
                             .findFirst()
                             .orElse(null);
                     
-                    if (carteImprumut == null) {
-                        System.out.println("Cartea nu este  disponibila!");
+                    try {
+                        if (carteImprumut == null) {
+                            throw new IllegalStateException("Cartea nu este disponibila!");
+                        }
+                    } catch (IllegalStateException e) {
+                        System.out.println(e.getMessage());
                         break;
                     }
                     
+                    try {
+                        if (carteImprumut instanceof EditieSpeciala && !biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorImprumut)) {
+                            throw new IllegalStateException("Cititorul nu este eligibil pentru a imprumuta o editie speciala!");
+                        }
+                    } catch (IllegalStateException e) {
+                        System.out.println(e.getMessage());
+                        break;
+                    }
+
                     System.out.print("Introdu data de returnare (YYYY-MM-DD): ");
                     String dataReturnareStr = scanner.nextLine();
                     LocalDate dataReturnare = LocalDate.parse(dataReturnareStr);
                     
                     biblioteca.imprumutaCarte(cititorImprumut, carteImprumut, dataReturnare);
-                    System.out.println("Cartea a fost imprumutata cu succes!");
+                    System.out.println("Cartea se gaseste in sectiunea " + carteImprumut.getSectiune().getNumeSectiune() + " " + carteImprumut.getSectiune().getLocatie() + " si a fost imprumutata cu succes!");
+                    System.out.println("Data de returnare este: " + dataReturnare);
                     break;
 
                 case 3:
-                    System.out.print("Introdu ID-ul cititorului: ");
-                    int idCititorReturnare = scanner.nextInt();
+                    int idCititorReturnare = citesteInt(scanner, "ID-ul cititorului: ");
                     scanner.nextLine(); 
                     
                     Cititor cititorReturnare = biblioteca.getCititoriInregistrati().stream()
@@ -710,8 +770,12 @@ class Meniu {
                             .findFirst()
                             .orElse(null);
                     
-                    if (cititorReturnare == null) {
-                        System.out.println("Cititorul nu este inregistrat!");
+                    try {
+                        if (cititorReturnare == null) {
+                            throw new IllegalStateException("Cititorul nu este inregistrat!");
+                        }
+                    } catch (IllegalStateException e) {
+                        System.out.println(e.getMessage());
                         break;
                     }
                     
@@ -736,7 +800,7 @@ class Meniu {
                         System.out.println("Cartile disponibile:");
                         for (Carte carte : biblioteca.getListaCarti()) {
                             if (carte.esteDisponibil()) {
-                                System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " " + carte.getAutor().getPrenume() + " (" + carte.getAnPublicatie() + ")");
+                                System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getPrenume() + " " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
                             }
                         }
                         break;
@@ -755,8 +819,66 @@ class Meniu {
                         }
                         break;
                     
+                    case 7:
+                        System.out.print("Dupa ce criteriu doriti sa cautati (n - nume, a - autor, ap - an publicatie): ");
+                        String criteriu = scanner.nextLine();
+                        if (criteriu.equalsIgnoreCase("n")) {
+                            System.out.print("Introdu numele cartii: ");
+                            String numeCarteCautata = scanner.nextLine();
+                            
+                            List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
+                                    .filter(c -> c.getNume().equalsIgnoreCase(numeCarteCautata))
+                                    .toList();
+                            if (cartiGasite.isEmpty()) {
+                                System.out.println("Nu s-au gasit carti cu numele " + numeCarteCautata);
+                            } else {
+                                System.out.println("Cartile gasite cu numele " + numeCarteCautata + ":");
+                                for (Carte carte : cartiGasite) {
+                                    System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
+                                }
+                            }
+
+                        } else if(criteriu.equalsIgnoreCase("a")) {
+                            System.out.print("Introdu numele autorului: ");
+                            String numeAutorCautat = scanner.nextLine();
+                            
+                            List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
+                                    .filter(c -> c.getAutor().getNume().equalsIgnoreCase(numeAutorCautat))
+                                    .toList();
+                            
+                            if (cartiGasite.isEmpty()) {
+                                System.out.println("Nu s-au gasit carti pentru autorul " + numeAutorCautat);
+                            } else {
+                                System.out.println("Cartile gasite pentru autorul " + numeAutorCautat + ":");
+                                for (Carte carte : cartiGasite) {
+                                    System.out.println("- " + carte.getNume() + " (" + carte.getAnPublicatie() + ")");
+                                }
+                            }
+                        } else if (criteriu.equalsIgnoreCase("ap")) {
+                            int anPublicatieCautat = citesteInt(scanner, "Introdu anul publicatiei: ");
+                            
+                            List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
+                                    .filter(c -> c.getAnPublicatie() == anPublicatieCautat)
+                                    .toList();
+                            
+                            if (cartiGasite.isEmpty()) {
+                                System.out.println("Nu s-au gasit carti pentru anul publicatiei " + anPublicatieCautat);
+                            } else {
+                                System.out.println("Cartile gasite pentru anul publicatiei " + anPublicatieCautat + ":");
+                                for (Carte carte : cartiGasite) {
+                                    System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
+                                }
+                            }
+                        } else {
+                            try {
+                                throw new IllegalArgumentException("Criteriu invalid!");
+                            } catch (IllegalArgumentException e) {
+                                System.out.println(e.getMessage());
+                            }
+                        }
+                    
             }
-        } while (optiune != 7);
+        } while (optiune != 8);
 
         scanner.close();
     }
