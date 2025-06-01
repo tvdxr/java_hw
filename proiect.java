@@ -207,9 +207,10 @@ class Cititor {
     private String nume;
     private String prenume;
     private int idCititor;
+    private String parola;
     private List<Carte> cartiImprumutate;
 
-    public Cititor(String nume, String prenume, int idCititor, List<Carte> cartiImprumutate) {
+    public Cititor(String nume, String prenume, int idCititor, String parola, List<Carte> cartiImprumutate) {
         setNume(nume);
         setPrenume(prenume);
         setIdCititor(idCititor);
@@ -219,10 +220,11 @@ class Cititor {
         } else {
             this.cartiImprumutate = new ArrayList<>();
         }
+        setParola(parola);
     }
 
-    public Cititor(String nume, String prenume, int idCititor) {
-        this(nume, prenume, idCititor, null);
+    public Cititor(String nume, String prenume, int idCititor, String parola) {
+        this(nume, prenume, idCititor, parola, null);
     }
 
     public void setNume(String nume) {
@@ -282,6 +284,14 @@ class Cititor {
 
     public List<Carte> getCartiImprumutate() {
         return new ArrayList<>(cartiImprumutate);
+    }
+
+    public void setParola(String parola) {
+        this.parola = parola;
+    }
+
+    public String getParola() {
+        return parola;
     }
 
 }
@@ -507,6 +517,7 @@ class Biblioteca {
     private Set<Cititor> cititoriInregistrati = new HashSet<>();
     private List<Imprumut> istoricImprumuturi = new ArrayList<>();
     private final List<Imprumut> imprumuturiActive = new ArrayList<>();
+    private List<Sectiune> listaSectiuni = new ArrayList<>();
 
     public void adaugaAutor(Autor autor) {
         Objects.requireNonNull(autor);
@@ -586,6 +597,13 @@ class Biblioteca {
         return new HashMap<>(cartiAutor);
     }
 
+    public List<Sectiune> getNumeSectiune() {
+        return listaCarti.stream()
+            .map(Carte::getSectiune)
+            .distinct()
+            .toList();
+    }
+
     public Set<Cititor> getCititoriInregistrati() {
         return new HashSet<>(cititoriInregistrati);
     }
@@ -607,6 +625,17 @@ class Biblioteca {
     public List<Imprumut> getImprumuturiActive() {
         return new ArrayList<>(imprumuturiActive);
     }
+    public void adaugaSectiune(Sectiune sectiune) {
+    listaSectiuni.add(sectiune);
+    }
+
+    public void stergeSectiune(Sectiune sectiune) {
+        listaSectiuni.remove(sectiune);
+    }
+
+    public List<Sectiune> getListaSectiuni() {
+        return listaSectiuni;
+    }
 }
 
 
@@ -623,6 +652,11 @@ class InitializareDate {
         Sectiune sectiune2 = new Sectiune("Proza", "Raft B2");
         Sectiune sectiune3 = new Sectiune("Eseuri", "Raft A2");
         Sectiune sectiune4 = new Sectiune("Literatura Universala", "Raft C1");
+
+        biblioteca.adaugaSectiune(sectiune1);
+        biblioteca.adaugaSectiune(sectiune2);
+        biblioteca.adaugaSectiune(sectiune3);
+        biblioteca.adaugaSectiune(sectiune4);
 
         Carte carte1 = new Carte.Builder<>()
             .setNume("Luceafarul")
@@ -663,8 +697,8 @@ class InitializareDate {
         biblioteca.adaugaCarte(roman1);
         biblioteca.adaugaCarte(editieSpeciala1);
         
-        Cititor cititor1 = new Cititor("Ion", "Popescu", 1);
-        Cititor cititor2 = new Cititor("Maria", "Ionescu", 2);
+        Cititor cititor1 = new Cititor("Ion", "Popescu", 1, "asd");
+        Cititor cititor2 = new Cititor("Maria", "Ionescu", 2, "asd");
 
         biblioteca.inregistreazaCititor(cititor1);
         biblioteca.inregistreazaCititor(cititor2);
@@ -701,248 +735,463 @@ class Meniu {
     public void afiseazaMeniu() {
         Scanner scanner = new Scanner(System.in);
         int optiune;
+        int optiuneAdmin;
+        int optiuneCititor;
         
         do {
-            System.out.println("\n=== MENIU BIBLIOTECA ===");
-            System.out.println("1. Inregistreaza cititor");
-            System.out.println("2. Imprumuta carte");
-            System.out.println("3. Returneaza carte");
-            System.out.println("4. Afiseaza carti disponibile");
-            System.out.println("5. Afiseaza cititorii inregistrati");
-            System.out.println("6. Afiseaza istoric imprumuturi");
-            System.out.println("7. Cauta carte (dupa nume, autor, an publicatie)");
-            System.out.println("8. Statistici biblioteca");
-            System.out.println("9. Numar carti imprumutate cititor si eligibilitate editie speciala");
-            System.out.println("10. Iesire");
-            
+            System.out.println("\nMeniu");
+            System.out.println("1. Cont Admin");
+            System.out.println("2. Cont Cititor");
+            System.out.println("0. Iesire");
+
             optiune = citesteInt(scanner, "Alege o optiune: ");
-            scanner.nextLine();  
-            
+            scanner.nextLine();
+
             switch (optiune) {
                 case 1:
-                    System.out.print("Introdu numele cititorului: ");
-                    String numeCititor = scanner.nextLine();
-                    System.out.print("Introdu prenumele cititorului: ");
-                    String prenumeCititor = scanner.nextLine();
-                    int idCititor = citesteInt(scanner, "ID-ul cititorului: ");
-                    
-                    Cititor cititor = new Cititor(numeCititor, prenumeCititor, idCititor);
-                    biblioteca.inregistreazaCititor(cititor);
-                    System.out.println("Cititorul a fost inregistrat cu succes!");
-                    break;
+                    boolean autentificat = false;
+                    do {
+                        System.out.println("Cont Admin");
+                        System.out.println("Introdu username: ");
+                        String username = scanner.next();
+                        System.out.println("Introdu parola: ");
+                        String parola = scanner.next();
 
-                    case 2:
-                    int idCititorImprumut = citesteInt(scanner, "ID-ul cititorului: ");
-                    scanner.nextLine();
-                    
-                    Cititor cititorImprumut = biblioteca.getCititoriInregistrati().stream()
-                            .filter(c -> c.getIdCititor() == idCititorImprumut)
-                            .findFirst()
-                            .orElse(null);
+                        if (username.equals("admin") && parola.equals("admin")){
+                            autentificat = true;
+                            System.out.println("Autentificare reustita!");
+                            do {
+                                System.out.println("1. Inregistreaza cititor");
+                                System.out.println("2. Adauga carte");
+                                System.out.println("3. Sterge carte");
+                                System.out.println("4. Adauga autor");
+                                System.out.println("5. Sterge autor");
+                                System.out.println("6. Sterge cititor");
+                                System.out.println("7. Adauga sectiune");
+                                System.out.println("8. Sterege sectiune");
+                                System.out.println("9. Afiseaza cititorii inregistrati");
+                                System.out.println("10. Afiseaza istoric imprumuturi");
+                                System.out.println("11. Statistici biblioteca");
+                                System.out.println("0. Iesire");
 
-                    if (cititorImprumut == null) {
-                        System.out.println("Cititorul nu este inregistrat!");
-                        break;
-                    }
+                                optiuneAdmin = citesteInt(scanner, "Alege o optiune: ");
+                                scanner.nextLine();
 
-                    List<Carte> cartiDisponibile = biblioteca.getListaCarti().stream()
-                            .filter(Carte::esteDisponibil)
-                            .toList();
+                                switch(optiuneAdmin) {
+                                    case 1:
+                                        System.out.print("Introdu numele cititorului: ");
+                                        String numeCititor = scanner.nextLine();
+                                        System.out.print("Introdu prenumele cititorului: ");
+                                        String prenumeCititor = scanner.nextLine();
+                                        int idCititor = citesteInt(scanner, "ID-ul cititorului: ");
+                                        
+                                        Cititor cititor = new Cititor(numeCititor, prenumeCititor, idCititor, "123");
+                                        biblioteca.inregistreazaCititor(cititor);
+                                        System.out.println("Cititorul a fost inregistrat cu succes!");
+                                        break;
+                                    
+                                    case 2:
+                                        System.out.print("Introdu numele cartii: ");
+                                        String numeCarte = scanner.nextLine();
 
-                    if (cartiDisponibile.isEmpty()) {
-                        System.out.println("Nu exista carti disponibile pentru imprumut!");
-                        break;
-                    }
+                                        System.out.println("Autori disponibili:");
+                                        List<Autor> autori = new ArrayList<>(biblioteca.getCartiAutor().keySet());
+                                        for (int i = 0; i < autori.size(); i++) {
+                                            Autor a = autori.get(i);
+                                            System.out.println((i + 1) + ". " + a.getPrenume() + " " + a.getNume());
+                                        }
 
-                    System.out.println("Carti disponibile:");
-                    for (int i = 0; i < cartiDisponibile.size(); i++) {
-                        System.out.println((i + 1) + ". " + cartiDisponibile.get(i).getNume());
-                    }
+                                        int indexAutor = citesteInt(scanner, "Numarul autorului: ") - 1;
+                                        scanner.nextLine();
 
-                    int numarCarte = citesteInt(scanner, "Alege numarul cartii: ");
-                    scanner.nextLine();
+                                        if (indexAutor < 0 || indexAutor >= autori.size()) {
+                                            System.out.println("Autorul nu a fost gasit! Te rugam sa il adaugi mai intai.");
+                                            break;
+                                        }
+                                        Autor autor = autori.get(indexAutor);
 
-                    if (numarCarte < 1 || numarCarte > cartiDisponibile.size()) {
-                        System.out.println("Numar invalid!");
-                        break;
-                    }
+                                        System.out.println("Sectiuni disponibile:");
+                                        List<Sectiune> sectiuni = biblioteca.getListaSectiuni();
+                                        for (int i = 0; i < sectiuni.size(); i++) {
+                                            System.out.println((i + 1) + ". " + sectiuni.get(i).getNumeSectiune());
+                                        }
 
-                    Carte carteImprumut = cartiDisponibile.get(numarCarte - 1);
+                                        int indexSectiune = citesteInt(scanner, "Numarul sectiunii: ") - 1;
+                                        scanner.nextLine();
 
-                    if (carteImprumut instanceof EditieSpeciala && 
-                        !biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorImprumut)) {
-                        System.out.println("Cititorul nu este eligibil pentru a imprumuta o editie speciala!");
-                        break;
-                    }
+                                        if (indexSectiune < 0 || indexSectiune >= sectiuni.size()) {
+                                            System.out.println("Sectiunea nu a fost gasita! Te rugam sa o adaugi mai intai.");
+                                            break;
+                                        }
+                                        Sectiune sectiuneGasita = sectiuni.get(indexSectiune);
 
-                    System.out.print("Introdu data de returnare (YYYY-MM-DD): ");
-                    String dataReturnareStr = scanner.nextLine();
+                                        int anPublicatie = citesteInt(scanner, "Anul publicatiei: ");
+                                        scanner.nextLine();
 
-                    try {
-                        LocalDate dataReturnare = LocalDate.parse(dataReturnareStr);
-                        biblioteca.imprumutaCarte(cititorImprumut, carteImprumut, dataReturnare);
-                        System.out.println("Cartea se gaseste in sectiunea " + 
-                            carteImprumut.getSectiune().getNumeSectiune() + " " + 
-                            carteImprumut.getSectiune().getLocatie() + 
-                            " si a fost imprumutata cu succes!");
-                        System.out.println("Data de returnare este: " + dataReturnare);
-                    } catch (DateTimeParseException e) {
-                        System.out.println("Formatul datei este invalid!");
-                    }
-                    break;
+                                        Carte carte = new Carte(numeCarte, autor, sectiuneGasita, anPublicatie);
+                                        biblioteca.adaugaCarte(carte);
+                                        System.out.println("Cartea a fost adaugata cu succes!");
+                                        break;
 
-                case 3:
-                    int idCititorReturnare = citesteInt(scanner, "ID-ul cititorului: ");
-                    scanner.nextLine(); 
-                    
-                    Cititor cititorReturnare = biblioteca.getCititoriInregistrati().stream()
-                            .filter(c -> c.getIdCititor() == idCititorReturnare)
-                            .findFirst()
-                            .orElse(null);
-                    
-                    try {
-                        if (cititorReturnare == null) {
-                            throw new IllegalStateException("Cititorul nu este inregistrat!");
-                        }
-                    } catch (IllegalStateException e) {
-                        System.out.println(e.getMessage());
-                        break;
-                    }
-                    
-                    System.out.print("Introdu numele cartii: ");
-                    String numeCarteReturnare = scanner.nextLine();
-                    
-                    Carte carteReturnare = biblioteca.getListaCarti().stream()
-                            .filter(c -> c.getNume().equalsIgnoreCase(numeCarteReturnare) && !c.esteDisponibil())
-                            .findFirst()
-                            .orElse(null);
-                    
-                    if (carteReturnare == null) {
-                        System.out.println("Cartea nu a fost imprumutata!");
-                        break;
-                    }
-                    
-                    biblioteca.returneazaCarte(cititorReturnare, carteReturnare);
-                    System.out.println("Cartea a fost returnata cu succes!");
-                    break;
-                
-                case 4:
-                    System.out.println("Cartile disponibile:");
-                    for (Carte carte : biblioteca.getListaCarti()) {
-                        if (carte.esteDisponibil()) {
-                            System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getPrenume() + " " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
-                        }
-                    }
-                    break;
-                    
-                case 5:
-                    System.out.println("Cititorii inregistrati:");
-                    for (Cititor cit : biblioteca.getCititoriInregistrati()) {
-                        System.out.println("- " + cit.getNume() + " " + cit.getPrenume());
-                    }
-                    break;
-                    
-                case 6:
-                    System.out.println("Istoric imprumuturi:");
-                    for (Imprumut imprumut : biblioteca.getIstoricImprumuturi()) {
-                        System.out.println("- " + imprumut.getCarteImprumutata().getNume() + " imprumutata de " + imprumut.getCititor().getNume() + " " + imprumut.getCititor().getPrenume() + " la data " + imprumut.getDataImprumut());
-                    }
-                    break;
-                    
-                case 7:
-                    System.out.print("Dupa ce criteriu doriti sa cautati (n - nume, a - autor, ap - an publicatie): ");
-                    String criteriu = scanner.nextLine();
-                    if (criteriu.equalsIgnoreCase("n")) {
-                        System.out.print("Introdu numele cartii: ");
-                        String numeCarteCautata = scanner.nextLine();
-                        
-                        List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
-                                .filter(c -> c.getNume().equalsIgnoreCase(numeCarteCautata))
-                                .toList();
-                        if (cartiGasite.isEmpty()) {
-                            System.out.println("Nu s-au gasit carti cu numele " + numeCarteCautata);
-                        } else {
-                            System.out.println("Cartile gasite cu numele " + numeCarteCautata + ":");
-                            for (Carte carte : cartiGasite) {
-                                System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
-                            }
-                        }
+                                    case 3:
+                                        System.out.print("Alege numarul cartii de sters: \n");
+                                        List<Carte> cartiBiblioteca = biblioteca.getListaCarti();
+                                        for (int i = 0; i < cartiBiblioteca.size(); i++) {
+                                            Carte c = cartiBiblioteca.get(i);
+                                            System.out.println((i + 1) + ". " + c.getNume() + " - " + c.getAutor().getNume() + " " + c.getAutor().getPrenume());
+                                        }
+                                        int indexCarteStergere = citesteInt(scanner, "Numarul cartii: ") - 1;
+                                        scanner.nextLine();
+                                        if (indexCarteStergere < 0 || indexCarteStergere >= cartiBiblioteca.size()) {
+                                            System.out.println("Cartea nu a fost gasita!");
+                                            break;
+                                        }
+                                        Carte carteDeSters = cartiBiblioteca.get(indexCarteStergere);
+                                        biblioteca.stergeCarte(carteDeSters);
+                                        System.out.println("Cartea a fost stearsa cu succes!");
+                                        break;
+                                        
 
-                    } else if(criteriu.equalsIgnoreCase("a")) {
-                        System.out.print("Introdu numele autorului: ");
-                        String numeAutorCautat = scanner.nextLine();
-                        
-                        List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
-                                .filter(c -> c.getAutor().getNume().equalsIgnoreCase(numeAutorCautat))
-                                .toList();
-                        
-                        if (cartiGasite.isEmpty()) {
-                            System.out.println("Nu s-au gasit carti pentru autorul " + numeAutorCautat);
-                        } else {
-                            System.out.println("Cartile gasite pentru autorul " + numeAutorCautat + ":");
-                            for (Carte carte : cartiGasite) {
-                                System.out.println("- " + carte.getNume() + " (" + carte.getAnPublicatie() + ")");
-                            }
-                        }
-                    } else if (criteriu.equalsIgnoreCase("ap")) {
-                        int anPublicatieCautat = citesteInt(scanner, "Introdu anul publicatiei: ");
-                        
-                        List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
-                                .filter(c -> c.getAnPublicatie() == anPublicatieCautat)
-                                .toList();
-                        
-                        if (cartiGasite.isEmpty()) {
-                            System.out.println("Nu s-au gasit carti pentru anul publicatiei " + anPublicatieCautat);
-                        } else {
-                            System.out.println("Cartile gasite pentru anul publicatiei " + anPublicatieCautat + ":");
-                            for (Carte carte : cartiGasite) {
-                                System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
-                            }
-                        }
+                                    case 4:
+                                        System.out.print("Introdu numele autorului: ");
+                                        String numeAutorNou = scanner.nextLine();
+                                        System.out.print("Introdu prenumele autorului: ");
+                                        String prenumeAutorNou = scanner.nextLine();
+                                        System.out.print("Introdu nationalitatea autorului: ");
+                                        String nationalitateAutorNou = scanner.nextLine();
+                                        
+                                        Autor autorNou = new Autor(prenumeAutorNou, numeAutorNou, nationalitateAutorNou);
+                                        biblioteca.adaugaAutor(autorNou);
+                                        
+                                        System.out.println("Autorul a fost adaugat cu succes!");
+                                        break;
+
+                                    case 5:
+                                        System.out.print("Alege numarul autorului de sters: \n");
+                                        List<Autor> autoriBiblioteca = new ArrayList<>(biblioteca.getCartiAutor().keySet());
+                                        for (int i = 0; i < autoriBiblioteca.size(); i++) {
+                                            Autor a = autoriBiblioteca.get(i);
+                                            System.out.println((i + 1) + ". " + a.getPrenume() + " " + a.getNume());
+                                        }
+                                        int indexAutorStergere = citesteInt(scanner, "Numarul autorului: ") - 1;
+                                        scanner.nextLine();
+                                        if (indexAutorStergere < 0 || indexAutorStergere >= autoriBiblioteca.size()) {
+                                            System.out.println("Autorul nu a fost gasit!");
+                                            break;
+                                        }
+                                        Autor autorDeSters = autoriBiblioteca.get(indexAutorStergere);
+                                        biblioteca.stergeAutor(autorDeSters);
+                                        System.out.println("Autorul a fost sters cu succes!");
+                                        break;                                
+                                    
+                                    case 6:
+                                        System.out.print("Introdu ID-ul cititorului de sters: ");
+                                        int idCititorStergere = citesteInt(scanner, "ID-ul cititorului: ");
+                                        Set<Cititor> cititori = biblioteca.getCititoriInregistrati();
+                                        Cititor cititorDeSters = cititori.stream()
+                                                .filter(c -> c.getIdCititor() == idCititorStergere)
+                                                .findFirst()
+                                                .orElse(null);
+                                        if (cititorDeSters == null) {
+                                            System.out.println("Cititorul nu a fost gasit!");
+                                            break;
+                                        }
+                                        biblioteca.stergeCititor(cititorDeSters);
+                                        System.out.println("Cititorul a fost sters cu succes!");
+                                        break;
+
+                                    case 7:
+                                        System.out.print("Introdu numele sectiunii: ");
+                                        String numeSectiune = scanner.nextLine();
+                                        System.out.print("Introdu locatia sectiunii: ");
+                                        String locatieSectiune = scanner.nextLine();
+                                        
+                                        Sectiune sectiuneNoua = new Sectiune(numeSectiune, locatieSectiune);
+                                        biblioteca.adaugaSectiune(sectiuneNoua);
+                                        
+                                        System.out.println("Sectiunea a fost adaugata cu succes!");
+                                        break;
+
+                                    case 8:
+                                        System.out.print("Alege numarul sectiunii de sters: \n");
+                                        List<Sectiune> sectiuniBiblioteca = biblioteca.getListaSectiuni();
+                                        for (int i = 0; i < sectiuniBiblioteca.size(); i++) {
+                                            Sectiune s = sectiuniBiblioteca.get(i);
+                                            System.out.println((i + 1) + ". " + s.getNumeSectiune() + " - " + s.getLocatie());
+                                        }
+                                        int indexSectiuneStergere = citesteInt(scanner, "Numarul sectiunii: ") - 1;
+                                        scanner.nextLine();
+                                        if (indexSectiuneStergere < 0 || indexSectiuneStergere >= sectiuniBiblioteca.size()) {
+                                            System.out.println("Sectiunea nu a fost gasita!");
+                                            break;
+                                        }
+                                        Sectiune sectiuneDeSters = sectiuniBiblioteca.get(indexSectiuneStergere);
+                                        biblioteca.stergeSectiune(sectiuneDeSters);
+                                        System.out.println("Sectiunea a fost stearsa cu succes!");
+                                        break;
+                                        
+                                    case 9:
+                                        System.out.println("Cititorii inregistrati:");
+                                        for (Cititor cit : biblioteca.getCititoriInregistrati()) {
+                                            System.out.println("- " + cit.getNume() + " " + cit.getPrenume());
+                                        }
+                                        break;
+
+                                    case 10:
+                                        System.out.println("Istoric imprumuturi:");
+                                        for (Imprumut imprumut : biblioteca.getIstoricImprumuturi()) {
+                                            System.out.println("- " + imprumut.getCarteImprumutata().getNume() + " imprumutata de " + imprumut.getCititor().getNume() + " " + imprumut.getCititor().getPrenume() + " la data " + imprumut.getDataImprumut());
+                                        }
+                                        break;
+                                    
+                                    case 11:
+                                        System.out.println("Statistici biblioteca:");
+                                        System.out.println("- Numarul total de carti: " + biblioteca.getListaCarti().size());
+                                        System.out.println("- Numarul total de cititori inregistrati: " + biblioteca.getCititoriInregistrati().size());
+                                        System.out.println("- Numarul total de imprumuturi active: " + biblioteca.getImprumuturiActive().size());
+                                        break;
+
+                                    case 0:
+                                        System.out.println("Iesire din contul de admin.");
+                                        autentificat = false;
+                                        break;
+
+                                    default:
+                                        System.out.println("Optiune invalida! Va rugam incercati din nou.");
+                                        break;
+                                }
+                        } while (optiuneAdmin != 0);
                     } else {
-                        try {
-                            throw new IllegalArgumentException("Criteriu invalid!");
-                        } catch (IllegalArgumentException e) {
-                            System.out.println(e.getMessage());
-                        }
-                    }
-                    break;
-                    
-                case 8:
-                    System.out.println("Statistici biblioteca:");
-                    System.out.println("- Numarul total de carti: " + biblioteca.getListaCarti().size());
-                    System.out.println("- Numarul total de cititori inregistrati: " + biblioteca.getCititoriInregistrati().size());
-                    System.out.println("- Numarul total de imprumuturi active: " + biblioteca.getImprumuturiActive().size());
+                            System.out.println("Autentificare esuata! Te rugam sa incerci din nou.");
+                    }   
+                    } while (autentificat);
                     break;
 
-                case 9:
-                    int idCititorStatistici = citesteInt(scanner, "ID-ul cititorului: ");
-                    scanner.nextLine();
-                    
-                    Cititor cititorStatistici = biblioteca.getCititoriInregistrati().stream()
-                            .filter(c -> c.getIdCititor() == idCititorStatistici)
-                            .findFirst()
-                            .orElse(null);
-                    
-                    try {
-                        if (cititorStatistici == null) {
-                            throw new IllegalStateException("Cititorul nu este inregistrat!");
+                case 2:
+                    boolean autentificatCititor = false;
+                    do{
+                        System.out.println("Cont Cititor");
+                        System.out.print("Introdu ID-ul cititorului: ");
+                        int idCititor = citesteInt(scanner, "ID-ul cititorului: ");
+                        System.out.print("Introdu parola: ");
+                        String parolaCititor = scanner.next();
+                        scanner.nextLine();
+                        Cititor cititorGasit = biblioteca.getCititoriInregistrati().stream()
+                                .filter(c -> c.getIdCititor() == idCititor && c.getParola().equals(parolaCititor))
+                                .findFirst()
+                                .orElse(null);
+                        if (cititorGasit != null) {
+                            autentificatCititor = true;
+                            System.out.println("Autentificare reusita!");
+                            do {
+                                System.out.println("1. Imprumuta carte");
+                                System.out.println("2. Returneaza carte");
+                                System.out.println("3. Afiseaza cartile disponibile");
+                                System.out.println("4. Cauta carte (dupa nume, autor, an publicatie)");
+                                System.out.println("5. Numar carti imprumutate cititor si eligibilitate editie speciala");
+                                System.out.println("6. Notificari");
+                                System.out.println("0. Iesire");
+
+                                optiuneCititor = citesteInt(scanner, "Alege o optiune: ");
+                                scanner.nextLine();
+
+                                switch(optiuneCititor){
+                                    case 1:
+                                        List<Carte> cartiDisponibile = biblioteca.getListaCarti().stream()
+                                                .filter(Carte::esteDisponibil)
+                                                .toList();
+
+                                        if (cartiDisponibile.isEmpty()) {
+                                            System.out.println("Nu exista carti disponibile pentru imprumut!");
+                                            break;
+                                        }
+
+                                        System.out.println("Carti disponibile:");
+                                        for (int i = 0; i < cartiDisponibile.size(); i++) {
+                                            System.out.println((i + 1) + ". " + cartiDisponibile.get(i).getNume());
+                                        }
+
+                                        int numarCarte = citesteInt(scanner, "Alege numarul cartii: ");
+                                        scanner.nextLine();
+
+                                        if (numarCarte < 1 || numarCarte > cartiDisponibile.size()) {
+                                            System.out.println("Numar invalid!");
+                                            break;
+                                        }
+
+                                        Carte carteImprumut = cartiDisponibile.get(numarCarte - 1);
+
+                                        if (carteImprumut instanceof EditieSpeciala && 
+                                            !biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorGasit)) {
+                                            System.out.println("Cititorul nu este eligibil pentru a imprumuta o editie speciala!");
+                                            break;
+                                        }
+
+                                        System.out.print("Introdu data de returnare (YYYY-MM-DD): ");
+                                        String dataReturnareStr = scanner.nextLine();
+
+                                        try {
+                                            LocalDate dataReturnare = LocalDate.parse(dataReturnareStr);
+                                            biblioteca.imprumutaCarte(cititorGasit, carteImprumut, dataReturnare);
+                                            System.out.println("Cartea se gaseste in sectiunea " + 
+                                                carteImprumut.getSectiune().getNumeSectiune() + " " + 
+                                                carteImprumut.getSectiune().getLocatie() + 
+                                                " si a fost imprumutata cu succes!");
+                                            System.out.println("Data de returnare este: " + dataReturnare);
+                                        } catch (DateTimeParseException e) {
+                                            System.out.println("Formatul datei este invalid!");
+                                        }
+                                        break;
+
+                                    case 2:
+                                        System.out.print("Alege numarul cartii de returnat: \n");
+                                        List<Carte> cartiImprumutate = cititorGasit.getCartiImprumutate();
+                                        if (cartiImprumutate.isEmpty()) {
+                                            System.out.println("Nu ai carti imprumutate!");
+                                            break;
+                                        }
+                                        for (int i = 0; i < cartiImprumutate.size(); i++) {
+                                            Carte c = cartiImprumutate.get(i);
+                                            System.out.println((i + 1) + ". " + c.getNume() + " - " + c.getAutor().getNume() + " " + c.getAutor().getPrenume());
+                                        }
+                                        int indexCarteReturnare = citesteInt(scanner, "Numarul cartii: ") - 1;
+                                        scanner.nextLine();
+                                        if (indexCarteReturnare < 0 || indexCarteReturnare >= cartiImprumutate.size()) {
+                                            System.out.println("Cartea nu a fost gasita!");
+                                            break;
+                                        }
+                                        Carte carteReturnare = cartiImprumutate.get(indexCarteReturnare);
+                                        if (!carteReturnare.esteDisponibil()) {
+                                            System.out.println("Cartea nu este imprumutata!");
+                                            break;
+                                        }
+
+                                        biblioteca.returneazaCarte(cititorGasit, carteReturnare);
+                                        System.out.println("Cartea a fost returnata cu succes!");
+                                        break;
+                                    
+                                    case 3:
+                                        System.out.println("Cartile disponibile:");
+                                        for (Carte carte : biblioteca.getListaCarti()) {
+                                            if (carte.esteDisponibil()) {
+                                                System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getPrenume() + " " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
+                                            }
+                                        }
+                                        break;
+
+                                    case 4:
+                                        System.out.print("Dupa ce criteriu doriti sa cautati (n - nume, a - autor, ap - an publicatie): ");
+                                        String criteriu = scanner.nextLine();
+                                        if (criteriu.equalsIgnoreCase("n")) {
+                                            System.out.print("Introdu numele cartii: ");
+                                            String numeCarteCautata = scanner.nextLine();
+                                            
+                                            List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
+                                                    .filter(c -> c.getNume().equalsIgnoreCase(numeCarteCautata))
+                                                    .toList();
+                                            if (cartiGasite.isEmpty()) {
+                                                System.out.println("Nu s-au gasit carti cu numele " + numeCarteCautata);
+                                            } else {
+                                                System.out.println("Cartile gasite cu numele " + numeCarteCautata + ":");
+                                                for (Carte carte : cartiGasite) {
+                                                    System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
+                                                }
+                                            }
+
+                                        } else if(criteriu.equalsIgnoreCase("a")) {
+                                            System.out.print("Introdu numele autorului: ");
+                                            String numeAutorCautat = scanner.nextLine();
+                                            
+                                            List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
+                                                    .filter(c -> c.getAutor().getNume().equalsIgnoreCase(numeAutorCautat))
+                                                    .toList();
+                                            
+                                            if (cartiGasite.isEmpty()) {
+                                                System.out.println("Nu s-au gasit carti pentru autorul " + numeAutorCautat);
+                                            } else {
+                                                System.out.println("Cartile gasite pentru autorul " + numeAutorCautat + ":");
+                                                for (Carte carte : cartiGasite) {
+                                                    System.out.println("- " + carte.getNume() + " (" + carte.getAnPublicatie() + ")");
+                                                }
+                                            }
+                                        } else if (criteriu.equalsIgnoreCase("ap")) {
+                                            int anPublicatieCautat = citesteInt(scanner, "Introdu anul publicatiei: ");
+                                            
+                                            List<Carte> cartiGasite = biblioteca.getListaCarti().stream()
+                                                    .filter(c -> c.getAnPublicatie() == anPublicatieCautat)
+                                                    .toList();
+                                            
+                                            if (cartiGasite.isEmpty()) {
+                                                System.out.println("Nu s-au gasit carti pentru anul publicatiei " + anPublicatieCautat);
+                                            } else {
+                                                System.out.println("Cartile gasite pentru anul publicatiei " + anPublicatieCautat + ":");
+                                                for (Carte carte : cartiGasite) {
+                                                    System.out.println("- " + carte.getNume() + " de " + carte.getAutor().getNume() + " (" + carte.getAnPublicatie() + ")");
+                                                }
+                                            }
+                                        } else {
+                                            try {
+                                                throw new IllegalArgumentException("Criteriu invalid!");
+                                            } catch (IllegalArgumentException e) {
+                                                System.out.println(e.getMessage());
+                                            }
+                                        }
+                                        break;
+
+                                    case 5:                                   
+                                        Cititor cititorStatistici = biblioteca.getCititoriInregistrati().stream()
+                                                .filter(c -> c.getIdCititor() == idCititor)
+                                                .findFirst()
+                                                .orElse(null);
+                                        
+                                        try {
+                                            if (cititorStatistici == null) {
+                                                throw new IllegalStateException("Cititorul nu este inregistrat!");
+                                            }
+                                        } catch (IllegalStateException e) {
+                                            System.out.println(e.getMessage());
+                                            break;
+                                        }
+                                        
+                                        System.out.println("Numarul de carti imprumutate de " + cititorStatistici.getNume() + " " + cititorStatistici.getPrenume() + ": " + cititorStatistici.getCartiImprumutate().size());
+                                        
+                                        if (biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorStatistici)) {
+                                            System.out.println("Cititorul este eligibil pentru a imprumuta o editie speciala.");
+                                        } else {
+                                            System.out.println("Cititorul nu este eligibil pentru a imprumuta o editie speciala.");
+                                        }
+                                        break;
+                                    
+                                    case 6:
+                                        System.out.println("nu este implementat inca");
+                                        break;
+
+                                    case 0:
+                                        System.out.println("Iesire din contul de cititor.");
+                                        autentificatCititor = false;
+                                        break;
+                                    
+                                    default:
+                                        System.out.println("Optiune invalida! Va rugam incercati din nou.");
+                                        break;
+                                    
+                                }
+
+                            } while (optiuneCititor != 0);
+                        } else {
+                            System.out.println("Autentificare esuata! Te rugam sa incerci din nou.");
+                            
                         }
-                    } catch (IllegalStateException e) {
-                        System.out.println(e.getMessage());
-                        break;
-                    }
-                    
-                    System.out.println("Numarul de carti imprumutate de " + cititorStatistici.getNume() + " " + cititorStatistici.getPrenume() + ": " + cititorStatistici.getCartiImprumutate().size());
-                    
-                    if (biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorStatistici)) {
-                        System.out.println("Cititorul este eligibil pentru a imprumuta o editie speciala.");
-                    } else {
-                        System.out.println("Cititorul nu este eligibil pentru a imprumuta o editie speciala.");
-                    }
+                    } while(autentificatCititor);
                     break;
+
+                case 0:
+                    System.out.println("Iesire din program.");
+                    break;
+                default:
+                    System.out.println("Optiune invalida! Va rugam incercati din nou.");
             }
-        } while (optiune != 10);
+        } while (optiune != 0);
 
         scanner.close();
     }
