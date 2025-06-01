@@ -739,52 +739,52 @@ class Meniu {
                             .filter(c -> c.getIdCititor() == idCititorImprumut)
                             .findFirst()
                             .orElse(null);
-                    
-                    try {
-                        if (cititorImprumut == null) {
-                            throw new IllegalStateException("Cititorul nu este inregistrat!");
-                        }
-                    } catch (IllegalStateException e) {
-                        System.out.println(e.getMessage());
+
+                    if (cititorImprumut == null) {
+                        System.out.println("Cititorul nu este inregistrat!");
                         break;
                     }
-                    
-                    for (int i = 0; i < biblioteca.getListaCarti().size(); i++) {
-                        System.out.println((i + 1) + ". " + biblioteca.getListaCarti().get(i).getNume());
+
+                    List<Carte> cartiDisponibile = biblioteca.getListaCarti().stream()
+                            .filter(Carte::esteDisponibil)
+                            .toList();
+
+                    if (cartiDisponibile.isEmpty()) {
+                        System.out.println("Nu exista carti disponibile pentru imprumut!");
+                        break;
                     }
+
+                    System.out.println("Carti disponibile:");
+                    for (int i = 0; i < cartiDisponibile.size(); i++) {
+                        System.out.println((i + 1) + ". " + cartiDisponibile.get(i).getNume());
+                    }
+
                     int numarCarte = citesteInt(scanner, "Alege numarul cartii: ");
                     scanner.nextLine();
-                    
-                    Carte carteImprumut = biblioteca.getListaCarti().stream()
-                            .filter(c -> c.getNume().equalsIgnoreCase(biblioteca.getListaCarti().get(numarCarte - 1).getNume()))
-                            .findFirst()
-                            .orElse(null);
-                    
-                    try {
-                        if (carteImprumut == null) {
-                            throw new IllegalStateException("Cartea nu este disponibila!");
-                        }
-                    } catch (IllegalStateException e) {
-                        System.out.println(e.getMessage());
+
+                    if (numarCarte < 1 || numarCarte > cartiDisponibile.size()) {
+                        System.out.println("Numar invalid!");
                         break;
                     }
-                    
-                    try {
-                        if (carteImprumut instanceof EditieSpeciala && !biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorImprumut)) {
-                            throw new IllegalStateException("Cititorul nu este eligibil pentru a imprumuta o editie speciala!");
-                        }
-                    } catch (IllegalStateException e) {
-                        System.out.println(e.getMessage());
+
+                    Carte carteImprumut = cartiDisponibile.get(numarCarte - 1);
+
+                    if (carteImprumut instanceof EditieSpeciala && 
+                        !biblioteca.verificaEligibilEditieSpeciala(biblioteca, cititorImprumut)) {
+                        System.out.println("Cititorul nu este eligibil pentru a imprumuta o editie speciala!");
                         break;
                     }
-                    
+
                     System.out.print("Introdu data de returnare (YYYY-MM-DD): ");
                     String dataReturnareStr = scanner.nextLine();
-                    
+
                     try {
                         LocalDate dataReturnare = LocalDate.parse(dataReturnareStr);
                         biblioteca.imprumutaCarte(cititorImprumut, carteImprumut, dataReturnare);
-                        System.out.println("Cartea se gaseste in sectiunea " + carteImprumut.getSectiune().getNumeSectiune() + " " + carteImprumut.getSectiune().getLocatie() + " si a fost imprumutata cu succes!");
+                        System.out.println("Cartea se gaseste in sectiunea " + 
+                            carteImprumut.getSectiune().getNumeSectiune() + " " + 
+                            carteImprumut.getSectiune().getLocatie() + 
+                            " si a fost imprumutata cu succes!");
                         System.out.println("Data de returnare este: " + dataReturnare);
                     } catch (DateTimeParseException e) {
                         System.out.println("Formatul datei este invalid!");
