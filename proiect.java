@@ -636,6 +636,53 @@ class Biblioteca {
     public List<Sectiune> getListaSectiuni() {
         return listaSectiuni;
     }
+
+    public List<String> verificaImprumuturiExpirate() {
+        List<String> notificari = new ArrayList<>();
+        LocalDate dataCurenta = LocalDate.now();
+        
+        for (Imprumut imprumut : imprumuturiActive) {
+            if (imprumut.getDataReturnare().isBefore(dataCurenta)) {
+                String notificare = String.format(
+                    "Notificare pentru %s %s: Cartea '%s' trebuie returnata! Data limita a fost: %s",
+                    imprumut.getCititor().getPrenume(),
+                    imprumut.getCititor().getNume(),
+                    imprumut.getCarteImprumutata().getNume(),
+                    imprumut.getDataReturnare()
+                );
+                notificari.add(notificare);
+            }
+        }
+        
+            return notificari;
+    }
+
+    public List<String> getNotificariPentruCititor(Cititor cititor) {
+        List<String> notificari = new ArrayList<>();
+        LocalDate dataCurenta = LocalDate.now();
+        
+        for (Imprumut imprumut : imprumuturiActive) {
+            if (imprumut.getCititor().equals(cititor)) {
+                if (imprumut.getDataReturnare().isBefore(dataCurenta)) {
+                    String notificare = String.format(
+                        "ATENTIE: Cartea '%s' trebuie returnata urgent! Data limita a fost: %s",
+                        imprumut.getCarteImprumutata().getNume(),
+                        imprumut.getDataReturnare()
+                    );
+                    notificari.add(notificare);
+                } else if (imprumut.getDataReturnare().isBefore(dataCurenta.plusDays(10))) {
+                    String notificare = String.format(
+                        "Reminder: Cartea '%s' trebuie returnata pana la %s",
+                        imprumut.getCarteImprumutata().getNume(),
+                        imprumut.getDataReturnare()
+                    );
+                    notificari.add(notificare);
+                }
+            }
+        }
+        
+        return notificari;
+    }
 }
 
 
@@ -702,9 +749,9 @@ class InitializareDate {
 
         biblioteca.inregistreazaCititor(cititor1);
         biblioteca.inregistreazaCititor(cititor2);
-        biblioteca.imprumutaCarte(cititor1, carte2, LocalDate.of(2025, 06, 15));
+        biblioteca.imprumutaCarte(cititor1, carte2, LocalDate.of(2025, 06, 11));
         biblioteca.returneazaCarte(cititor1, carte2);
-        biblioteca.imprumutaCarte(cititor1, roman1, LocalDate.of(2025, 06, 20));
+        biblioteca.imprumutaCarte(cititor1, roman1, LocalDate.of(2025, 06, 5));
         biblioteca.imprumutaCarte(cititor2, carte2, LocalDate.of(2025, 07, 01));
 
         return biblioteca;
@@ -1163,7 +1210,15 @@ class Meniu {
                                         break;
                                     
                                     case 6:
-                                        System.out.println("nu este implementat inca");
+                                        List<String> notificari = biblioteca.getNotificariPentruCititor(cititorGasit);
+                                        if (notificari.isEmpty()) {
+                                            System.out.println("Nu aveti nicio notificare.");
+                                        } else {
+                                            System.out.println("Notificari: ");
+                                            for (String notificare : notificari) {
+                                                System.out.println("-" + notificare);
+                                            }
+                                        }
                                         break;
 
                                     case 0:
