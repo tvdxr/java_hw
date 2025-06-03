@@ -1,15 +1,13 @@
 package withDB;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Objects;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Scanner;
-import java.util.InputMismatchException;
+import java.util.*;
 import java.time.format.DateTimeParseException;
+import java.util.stream.Collectors;
+import withDB.AutorService;
+import withDB.SectiuneService;
+import withDB.CarteService;
+import withDB.CititorService;
+import java.sql.Statement;
 
 class Carte {
     protected String nume;
@@ -17,6 +15,15 @@ class Carte {
     protected Sectiune sectiune;
     protected int anPublicatie;
     protected boolean esteDisponibil;
+    private int id;
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
 
     public Carte(String nume, Autor autor, Sectiune sectiune, int anPublicatie) {
         setNume(nume);
@@ -131,6 +138,15 @@ class Autor {
     private String prenume;
     private String nationalitate;
     private List<Carte> cartiPublicate = new ArrayList<>();
+    private int id;
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
 
     public Autor(String prenume, String nume, String nationalitate, List<Carte> cartiExistente) {
         setPrenume(prenume);
@@ -210,6 +226,15 @@ class Cititor {
     private int idCititor;
     private String parola;
     private List<Carte> cartiImprumutate;
+    private int id;
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
 
     public Cititor(String nume, String prenume, int idCititor, String parola, List<Carte> cartiImprumutate) {
         setNume(nume);
@@ -301,6 +326,15 @@ class Cititor {
 class Sectiune {
     private String numeSectiune;
     private String locatie;
+    private int id;
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
 
     public Sectiune(String numeSectiune, String locatie) {
         setNumeSectiune(numeSectiune);
@@ -513,47 +547,45 @@ class EditieSpeciala extends Carte {
 
 
 class Biblioteca {
-    private List<Carte> listaCarti = new ArrayList<>();
-    private Map<Autor, List<Carte>> cartiAutor = new HashMap<>();
-    private Set<Cititor> cititoriInregistrati = new HashSet<>();
+    private final AutorService autorService = AutorService.getInstance();
+    private final SectiuneService sectiuneService = SectiuneService.getInstance();
+    private final CarteService carteService = CarteService.getInstance();
+    private final CititorService cititorService = CititorService.getInstance();
+    
     private List<Imprumut> istoricImprumuturi = new ArrayList<>();
     private final List<Imprumut> imprumuturiActive = new ArrayList<>();
-    private List<Sectiune> listaSectiuni = new ArrayList<>();
 
     public void adaugaAutor(Autor autor) {
         Objects.requireNonNull(autor);
-        cartiAutor.putIfAbsent(autor, new ArrayList<>());
+        autorService.adaugaAutor(autor);
     }
 
     public void adaugaCarte(Carte carte) {
         Objects.requireNonNull(carte);
-        listaCarti.add(carte);
-        sorteazaListaCarti(); 
-        
-        Autor autor = carte.getAutor();
-        cartiAutor.computeIfAbsent(autor, k -> new ArrayList<>()).add(carte);
+        carteService.adaugaCarte(carte);
     }
 
     public void stergeCarte(Carte carte) {
         Objects.requireNonNull(carte);
-        listaCarti.remove(carte);
-        cartiAutor.getOrDefault(carte.getAutor(), new ArrayList<>()).remove(carte);
+        carteService.stergeCarte(carte.getId());
     }
 
     public void stergeAutor(Autor autor) {
         Objects.requireNonNull(autor);
-        cartiAutor.remove(autor);
-        listaCarti.removeIf(carte -> carte.getAutor().equals(autor));
+        carteService.getToateCartile().stream()
+            .filter(c -> c.getAutor().equals(autor))
+            .forEach(c -> carteService.stergeCarte(c.getId()));
+        autorService.stergeAutor(autor.getId());
     }
 
     public void stergeCititor(Cititor cititor) {
         Objects.requireNonNull(cititor);
-        cititoriInregistrati.remove(cititor);
+        cititorService.stergeCititor(cititor.getId());
     }
 
     public void inregistreazaCititor(Cititor cititor) {
         Objects.requireNonNull(cititor);
-        cititoriInregistrati.add(cititor);
+        cititorService.inregistreazaCititor(cititor);
     }
 
     public void imprumutaCarte(Cititor cititor, Carte carte, LocalDate dataReturnare) {
@@ -566,6 +598,7 @@ class Biblioteca {
 
         cititor.adaugaCarteImprumutata(carte);
         carte.setEsteDisponibil(false);
+        carteService.actualizeazaCarte(carte);
 
         Imprumut imprumut = new Imprumut(cititor, carte, LocalDate.now(), dataReturnare);
         imprumuturiActive.add(imprumut);
@@ -581,32 +614,32 @@ class Biblioteca {
 
         cititor.getCartiImprumutate().remove(carte);
         carte.setEsteDisponibil(true);
+        carteService.actualizeazaCarte(carte);
+        
         imprumut.finalizeazaImprumut();
         imprumuturiActive.remove(imprumut);
         istoricImprumuturi.add(imprumut);
     }
 
-    private void sorteazaListaCarti() {
-        listaCarti.sort((carte1, carte2) -> carte1.getNume().compareToIgnoreCase(carte2.getNume()));
-    }
-
     public List<Carte> getListaCarti() {
-        return new ArrayList<>(listaCarti);
+        return carteService.getToateCartile();
     }
 
     public Map<Autor, List<Carte>> getCartiAutor() {
-        return new HashMap<>(cartiAutor);
+        Map<Autor, List<Carte>> result = new HashMap<>();
+        for (Autor autor : autorService.getTotiAutorii()) {
+            List<Carte> carti = carteService.getCartiPentruAutor(autor.getId());
+            result.put(autor, carti);
+        }
+        return result;
     }
 
-    public List<Sectiune> getNumeSectiune() {
-        return listaCarti.stream()
-            .map(Carte::getSectiune)
-            .distinct()
-            .toList();
+    public List<Sectiune> getListaSectiuni() {
+        return sectiuneService.getToateSectiunile();
     }
 
     public Set<Cititor> getCititoriInregistrati() {
-        return new HashSet<>(cititoriInregistrati);
+        return new HashSet<>(cititorService.getTotiCititorii());
     }
 
     public List<Imprumut> getIstoricImprumuturi() {
@@ -626,16 +659,13 @@ class Biblioteca {
     public List<Imprumut> getImprumuturiActive() {
         return new ArrayList<>(imprumuturiActive);
     }
+    
     public void adaugaSectiune(Sectiune sectiune) {
-    listaSectiuni.add(sectiune);
+        sectiuneService.adaugaSectiune(sectiune);
     }
 
     public void stergeSectiune(Sectiune sectiune) {
-        listaSectiuni.remove(sectiune);
-    }
-
-    public List<Sectiune> getListaSectiuni() {
-        return listaSectiuni;
+        sectiuneService.stergeSectiune(sectiune.getId());
     }
 
     public List<String> verificaImprumuturiExpirate() {
@@ -655,7 +685,7 @@ class Biblioteca {
             }
         }
         
-            return notificari;
+        return notificari;
     }
 
     public List<String> getNotificariPentruCititor(Cititor cititor) {
@@ -684,78 +714,88 @@ class Biblioteca {
         
         return notificari;
     }
+
+    public List<Sectiune> getNumeSectiune() {
+        return sectiuneService.getToateSectiunile().stream()
+            .map(s -> new Sectiune(s.getNumeSectiune(), s.getLocatie()))
+            .collect(Collectors.toList());
+    }
 }
 
 
 class InitializareDate {
-    public static Biblioteca initializeazaBiblioteca() {
-        Biblioteca biblioteca = new Biblioteca();
-        
-        Autor autor1 = new Autor("Mihai", "Eminescu", "Romana");
-        Autor autor2 = new Autor("Ion", "Creanga", "Romana");
-        Autor autor3 = new Autor("George", "Cozma", "Romana");
-        Autor autor4 = new Autor("Ion", "Barbu", "Romana");
-        
-        Sectiune sectiune1 = new Sectiune("Poezie", "Raft A1");
-        Sectiune sectiune2 = new Sectiune("Proza", "Raft B2");
-        Sectiune sectiune3 = new Sectiune("Eseuri", "Raft A2");
-        Sectiune sectiune4 = new Sectiune("Literatura Universala", "Raft C1");
+    
+    public static void initializeazaBazaDeDate() {
+        try {
+            // Obține instanțele serviciilor
+            AutorService autorService = AutorService.getInstance();
+            SectiuneService sectiuneService = SectiuneService.getInstance();
+            CarteService carteService = CarteService.getInstance();
+            CititorService cititorService = CititorService.getInstance();
+            
+            // 1. Creează tabelele în ordinea corectă
+            autorService.createTable();
+            sectiuneService.createTable();
+            carteService.createTable();
+            cititorService.createTable();
+            
+            // 2. Populează autorii (dacă tabela e goală)
+            if (autorService.countAutori() == 0) {
+                autorService.adaugaAutor(new Autor("Mihai", "Eminescu", "Romana"));
+                autorService.adaugaAutor(new Autor("Ion", "Creanga", "Romana"));
+                autorService.adaugaAutor(new Autor("George", "Cozma", "Romana"));
+                autorService.adaugaAutor(new Autor("Ion", "Barbu", "Romana"));
+            }
+            
+            // 3. Populează secțiunile (dacă tabela e goală)
+            if (sectiuneService.countSectiuni() == 0) {
+                sectiuneService.adaugaSectiune(new Sectiune("Poezie", "Raft A1"));
+                sectiuneService.adaugaSectiune(new Sectiune("Proza", "Raft B2"));
+                sectiuneService.adaugaSectiune(new Sectiune("Eseuri", "Raft A2"));
+                sectiuneService.adaugaSectiune(new Sectiune("Literatura Universala", "Raft C1"));
+            }
 
-        biblioteca.adaugaSectiune(sectiune1);
-        biblioteca.adaugaSectiune(sectiune2);
-        biblioteca.adaugaSectiune(sectiune3);
-        biblioteca.adaugaSectiune(sectiune4);
+            // 4. Populează cărțile (doar după ce autorii și secțiunile există)
+            if (carteService.countCarti() == 0) {
+                // Obține autorii - corectat pentru a folosi prenume și nume separate
+                Autor eminescu = autorService.getAutorByNumeComplet("Mihai", "Eminescu");
+                Autor creanga = autorService.getAutorByNumeComplet("Ion", "Creanga");
+                
+                // Obține secțiunile
+                Sectiune poezie = sectiuneService.getSectiuneByNume("Poezie");
+                Sectiune proza = sectiuneService.getSectiuneByNume("Proza");
+                
+                if (eminescu != null && poezie != null) {
+                    Carte carte1 = new Carte.Builder<>()
+                        .setNume("Luceafarul")
+                        .setAutor(eminescu)
+                        .setSectiune(poezie)
+                        .setAnPublicatie(1883)
+                        .build();
+                    carteService.adaugaCarte(carte1);
+                }
+                
+                if (creanga != null && proza != null) {
+                    Carte carte2 = new Carte.Builder<>()
+                        .setNume("Povestea lui Harap-Alb")
+                        .setAutor(creanga)
+                        .setSectiune(proza)
+                        .setAnPublicatie(1877)
+                        .build();
+                    carteService.adaugaCarte(carte2);
+                }
+            }
 
-        Carte carte1 = new Carte.Builder<>()
-            .setNume("Luceafarul")
-            .setAutor(autor1)
-            .setSectiune(sectiune1)
-            .setAnPublicatie(1883)
-            .build();
-
-        Carte carte2 = new Carte.Builder<>()
-            .setNume("Povestea lui Harap-Alb")
-            .setAutor(autor2)
-            .setSectiune(sectiune2)
-            .setAnPublicatie(1877)
-            .build();
-
-        Roman roman1 = new Roman.RomanBuilder()
-            .setNume("O scrisoare pierduta")
-            .setAutor(autor3)
-            .setSectiune(sectiune3)
-            .setAnPublicatie(1884)
-            .setGenLiterar("Comedie")
-            .setNumarPagini(200)
-            .build();
-
-        EditieSpeciala editieSpeciala1 = new EditieSpeciala.EditieSpecialaBuilder()
-            .setNume("Mara")
-            .setAutor(autor4)
-            .setSectiune(sectiune4)
-            .setAnPublicatie(2023)
-            .setTipEditie("Hardcover")
-            .setNumarExemplare(100)
-            .build();
-        
-        biblioteca.adaugaAutor(autor1);
-        biblioteca.adaugaAutor(autor2);
-        biblioteca.adaugaCarte(carte1);
-        biblioteca.adaugaCarte(carte2);
-        biblioteca.adaugaCarte(roman1);
-        biblioteca.adaugaCarte(editieSpeciala1);
-        
-        Cititor cititor1 = new Cititor("Ion", "Popescu", 1, "asd");
-        Cititor cititor2 = new Cititor("Maria", "Ionescu", 2, "asd");
-
-        biblioteca.inregistreazaCititor(cititor1);
-        biblioteca.inregistreazaCititor(cititor2);
-        biblioteca.imprumutaCarte(cititor1, carte2, LocalDate.of(2025, 06, 11));
-        biblioteca.returneazaCarte(cititor1, carte2);
-        biblioteca.imprumutaCarte(cititor1, roman1, LocalDate.of(2025, 06, 5));
-        biblioteca.imprumutaCarte(cititor2, carte2, LocalDate.of(2025, 07, 01));
-
-        return biblioteca;
+            // 5. Populează cititorii
+            if (cititorService.countCititori() == 0) {
+                cititorService.inregistreazaCititor(new Cititor("Ion", "Popescu", 1, "asd"));
+                cititorService.inregistreazaCititor(new Cititor("Maria", "Ionescu", 2, "asd"));
+            }
+        } catch (Exception e) {
+            System.err.println("Eroare la inițializarea bazei de date: " + e.getMessage());
+            e.printStackTrace();
+            
+        }
     }
 }
 
@@ -1256,8 +1296,14 @@ class Meniu {
 
 public class proiect {
     public static void main(String[] args) {
-        Biblioteca biblioteca = InitializareDate.initializeazaBiblioteca();
+        InitializareDate.initializeazaBazaDeDate();
+        
+
+        Biblioteca biblioteca = new Biblioteca();
+        
         Meniu meniu = new Meniu(biblioteca);
         meniu.afiseazaMeniu();
+        
+        DatabaseConnection.getInstance().closeConnection();
     }
 }
