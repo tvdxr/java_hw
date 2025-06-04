@@ -64,23 +64,37 @@ public class CarteService {
                                  carte.getNume(), carte.getAutor().getId(), carte.getSectiune().getId(), 
                                  carte.getAnPublicatie(), carte.esteDisponibil());
         }
-        crudService.executeUpdate(query);
+
+        try (Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    carte.setId(rs.getInt(1));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+    }
     }
     
     // obtine toate cartile
     public List<Carte> getToateCartile() {
-        String query = "SELECT * FROM carti c " +
-                       "JOIN autori a ON c.id_autor = a.id " +
-                       "JOIN sectiuni s ON c.id_sectiune = s.id";
+        String query = "SELECT c.*, " +
+                        "a.prenume AS autor_prenume, a.nume AS autor_nume, a.nationalitate AS autor_nationalitate, " +
+                        "s.nume_sectiune, s.locatie " +
+                        "FROM carti c " +
+                        "JOIN autori a ON c.id_autor = a.id " +
+                        "JOIN sectiuni s ON c.id_sectiune = s.id";
         return crudService.executeQuery(query, new CRUDService.ResultSetMapper<Carte>() {
             @Override
             public Carte map(ResultSet rs) throws SQLException {
                 Autor autor = new Autor(
-                    rs.getString("prenume"),
-                    rs.getString("nume"),
-                    rs.getString("nationalitate")
+                    rs.getString("autor_prenume"),
+                    rs.getString("autor_nume"),
+                    rs.getString("autor_nationalitate")
                 );
-                autor.setId(rs.getInt("id"));
+                autor.setId(rs.getInt("id_autor"));
                 
                 Sectiune sectiune = new Sectiune(
                     rs.getString("nume_sectiune"),
@@ -90,7 +104,7 @@ public class CarteService {
                 
                 String tipCarte = rs.getString("tip_carte");
                 if ("ROMAN".equals(tipCarte)) {
-                    return new Roman(
+                    Roman roman = new Roman(
                         rs.getString("nume"),
                         autor,
                         sectiune,
@@ -98,8 +112,10 @@ public class CarteService {
                         rs.getString("gen_literar"),
                         rs.getInt("numar_pagini")
                     );
+                    roman.setId(rs.getInt("id"));
+                    return roman;
                 } else if ("EDITIE".equals(tipCarte)) {
-                    return new EditieSpeciala(
+                    EditieSpeciala editie = new EditieSpeciala(
                         rs.getString("nume"),
                         autor,
                         sectiune,
@@ -107,6 +123,8 @@ public class CarteService {
                         rs.getString("tip_editie"),
                         rs.getInt("numar_exemplare")
                     );
+                    editie.setId(rs.getInt("id"));
+                    return editie;
                 } else {
                     Carte carte = new Carte(
                         rs.getString("nume"),
@@ -115,6 +133,7 @@ public class CarteService {
                         rs.getInt("an_publicatie")
                     );
                     carte.setEsteDisponibil(rs.getBoolean("este_disponibil"));
+                    carte.setId(rs.getInt("id"));
                     return carte;
                 }
             }
@@ -139,10 +158,13 @@ public class CarteService {
     
     // obt carte dupa ID
     public Carte getCarteById(int id) {
-        String query = "SELECT * FROM carti c " +
-                       "JOIN autori a ON c.id_autor = a.id " +
-                       "JOIN sectiuni s ON c.id_sectiune = s.id " +
-                       "WHERE c.id=" + id;
+        String query = "SELECT c.*, " +
+                    "a.prenume AS autor_prenume, a.nume AS autor_nume, a.nationalitate AS autor_nationalitate, " +
+                    "s.nume_sectiune, s.locatie " +
+                    "FROM carti c " +
+                    "JOIN autori a ON c.id_autor = a.id " +
+                    "JOIN sectiuni s ON c.id_sectiune = s.id " +
+                    "WHERE c.id=" + id;
         List<Carte> carti = crudService.executeQuery(query, new CRUDService.ResultSetMapper<Carte>() {
             @Override
             public Carte map(ResultSet rs) throws SQLException {

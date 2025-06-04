@@ -83,7 +83,7 @@ public class SectiuneService {
     }
 
     public Sectiune getSectiuneByNume(String nume) {
-        String sql = "SELECT * FROM sectiuni WHERE nume_sectiune = ?"; // <-- corectat aici
+        String sql = "SELECT * FROM sectiuni WHERE nume_sectiune = ?";
         try (Connection conn = DatabaseConnection.getConnection();
             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, nume);
@@ -102,6 +102,7 @@ public class SectiuneService {
         }
         return null;
     }
+    
     // sectiune după ID
     public Sectiune getSectiuneById(int id) {
         String query = "SELECT * FROM sectiuni WHERE id=" + id;

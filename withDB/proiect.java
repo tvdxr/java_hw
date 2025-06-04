@@ -555,6 +555,10 @@ class Biblioteca {
     private List<Imprumut> istoricImprumuturi = new ArrayList<>();
     private final List<Imprumut> imprumuturiActive = new ArrayList<>();
 
+    public void actualizeazaCititor(Cititor cititor) {
+        cititorService.actualizeazaCititor(cititor);
+    }
+
     public void adaugaAutor(Autor autor) {
         Objects.requireNonNull(autor);
         autorService.adaugaAutor(autor);
@@ -724,7 +728,7 @@ class Biblioteca {
 
 
 class InitializareDate {
-    
+
     public static void initializeazaBazaDeDate() {
         try {
             // Obține instanțele serviciilor
@@ -732,39 +736,45 @@ class InitializareDate {
             SectiuneService sectiuneService = SectiuneService.getInstance();
             CarteService carteService = CarteService.getInstance();
             CititorService cititorService = CititorService.getInstance();
-            
+
             // 1. Creează tabelele în ordinea corectă
             autorService.createTable();
             sectiuneService.createTable();
             carteService.createTable();
             cititorService.createTable();
-            
+
             // 2. Populează autorii (dacă tabela e goală)
             if (autorService.countAutori() == 0) {
                 autorService.adaugaAutor(new Autor("Mihai", "Eminescu", "Romana"));
+                Audit.getInstance().logAction("adauga_autor");
                 autorService.adaugaAutor(new Autor("Ion", "Creanga", "Romana"));
+                Audit.getInstance().logAction("adauga_autor");
                 autorService.adaugaAutor(new Autor("George", "Cozma", "Romana"));
+                Audit.getInstance().logAction("adauga_autor");
                 autorService.adaugaAutor(new Autor("Ion", "Barbu", "Romana"));
+                Audit.getInstance().logAction("adauga_autor");
             }
-            
+
             // 3. Populează secțiunile (dacă tabela e goală)
             if (sectiuneService.countSectiuni() == 0) {
                 sectiuneService.adaugaSectiune(new Sectiune("Poezie", "Raft A1"));
+                Audit.getInstance().logAction("adauga_sectiune");
                 sectiuneService.adaugaSectiune(new Sectiune("Proza", "Raft B2"));
+                Audit.getInstance().logAction("adauga_sectiune");
                 sectiuneService.adaugaSectiune(new Sectiune("Eseuri", "Raft A2"));
+                Audit.getInstance().logAction("adauga_sectiune");
                 sectiuneService.adaugaSectiune(new Sectiune("Literatura Universala", "Raft C1"));
+                Audit.getInstance().logAction("adauga_sectiune");
             }
 
             // 4. Populează cărțile (doar după ce autorii și secțiunile există)
             if (carteService.countCarti() == 0) {
-                // Obține autorii - corectat pentru a folosi prenume și nume separate
                 Autor eminescu = autorService.getAutorByNumeComplet("Mihai", "Eminescu");
                 Autor creanga = autorService.getAutorByNumeComplet("Ion", "Creanga");
-                
-                // Obține secțiunile
+
                 Sectiune poezie = sectiuneService.getSectiuneByNume("Poezie");
                 Sectiune proza = sectiuneService.getSectiuneByNume("Proza");
-                
+
                 if (eminescu != null && poezie != null) {
                     Carte carte1 = new Carte.Builder<>()
                         .setNume("Luceafarul")
@@ -773,8 +783,9 @@ class InitializareDate {
                         .setAnPublicatie(1883)
                         .build();
                     carteService.adaugaCarte(carte1);
+                    Audit.getInstance().logAction("adauga_carte");
                 }
-                
+
                 if (creanga != null && proza != null) {
                     Carte carte2 = new Carte.Builder<>()
                         .setNume("Povestea lui Harap-Alb")
@@ -783,18 +794,20 @@ class InitializareDate {
                         .setAnPublicatie(1877)
                         .build();
                     carteService.adaugaCarte(carte2);
+                    Audit.getInstance().logAction("adauga_carte");
                 }
             }
 
             // 5. Populează cititorii
             if (cititorService.countCititori() == 0) {
                 cititorService.inregistreazaCititor(new Cititor("Ion", "Popescu", 1, "asd"));
+                Audit.getInstance().logAction("adauga_cititor");
                 cititorService.inregistreazaCititor(new Cititor("Maria", "Ionescu", 2, "asd"));
+                Audit.getInstance().logAction("adauga_cititor");
             }
         } catch (Exception e) {
             System.err.println("Eroare la inițializarea bazei de date: " + e.getMessage());
             e.printStackTrace();
-            
         }
     }
 }
@@ -872,8 +885,10 @@ class Meniu {
                                         System.out.print("Introdu prenumele cititorului: ");
                                         String prenumeCititor = scanner.nextLine();
                                         int idCititor = citesteInt(scanner, "ID-ul cititorului: ");
+                                        System.out.println("Parola cititorului: ");
+                                        String parolaCititor = scanner.nextLine();
                                         
-                                        Cititor cititor = new Cititor(numeCititor, prenumeCititor, idCititor, "123");
+                                        Cititor cititor = new Cititor(numeCititor, prenumeCititor, idCititor, parolaCititor);
                                         biblioteca.inregistreazaCititor(cititor);
                                         System.out.println("Cititorul a fost inregistrat cu succes!");
                                         break;
@@ -926,7 +941,7 @@ class Meniu {
                                         List<Carte> cartiBiblioteca = biblioteca.getListaCarti();
                                         for (int i = 0; i < cartiBiblioteca.size(); i++) {
                                             Carte c = cartiBiblioteca.get(i);
-                                            System.out.println((i + 1) + ". " + c.getNume() + " - " + c.getAutor().getNume() + " " + c.getAutor().getPrenume());
+                                            System.out.println((i + 1) + ". " + c.getNume() + " - " + c.getAutor().getPrenume() + " " + c.getAutor().getNume());
                                         }
                                         int indexCarteStergere = citesteInt(scanner, "Numarul cartii: ") - 1;
                                         scanner.nextLine();
@@ -1077,7 +1092,8 @@ class Meniu {
                                 System.out.println("3. Afiseaza cartile disponibile");
                                 System.out.println("4. Cauta carte (dupa nume, autor, an publicatie)");
                                 System.out.println("5. Numar carti imprumutate cititor si eligibilitate editie speciala");
-                                System.out.println("6. Notificari");
+                                System.out.println("6. Schimba parola");
+                                System.out.println("7. Notificari");
                                 System.out.println("0. Iesire");
 
                                 optiuneCititor = citesteInt(scanner, "Alege o optiune: ");
@@ -1251,6 +1267,14 @@ class Meniu {
                                         break;
                                     
                                     case 6:
+                                        System.out.print("Introdu noua parola: ");
+                                        String nouaParola = scanner.nextLine();
+                                        cititorGasit.setParola(nouaParola);
+                                        biblioteca.actualizeazaCititor(cititorGasit);
+                                        System.out.println("Parola a fost schimbata cu succes!");
+                                        break;
+                                    
+                                    case 7:
                                         List<String> notificari = biblioteca.getNotificariPentruCititor(cititorGasit);
                                         if (notificari.isEmpty()) {
                                             System.out.println("Nu aveti nicio notificare.");
